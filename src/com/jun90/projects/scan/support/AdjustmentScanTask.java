@@ -28,8 +28,8 @@ public class AdjustmentScanTask implements ScanTask {
 	
 	/**
 	 * Construct an adjustment task
-	 * @param contrast Contrast (Between -1.0 and 1。0)
-	 * @param brightness Brightness (Between -1.0 and 1。0)
+	 * @param contrast Contrast (Between -1.0 and 1.0)
+	 * @param brightness Brightness (Between -1.0 and 1.0)
 	 */
 	public AdjustmentScanTask(double contrast, double brightness) {
 		if(contrast < -1 || contrast > 1 || brightness < -1 || brightness > 1)
