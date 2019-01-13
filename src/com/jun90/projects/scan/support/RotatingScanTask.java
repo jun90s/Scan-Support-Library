@@ -62,7 +62,7 @@ public class RotatingScanTask implements ScanTask {
 		mat.copyTo(tempMat.submat(offsetY, offsetY + mat.rows(), offsetX, offsetX + mat.cols()));
 		int width = (int) (Math.abs(mat.cols() * Math.cos(radians)) + Math.abs(mat.rows() * Math.sin(radians)));
 		int height = (int) (Math.abs(mat.cols() * Math.sin(radians)) + Math.abs(mat.rows() * Math.cos(radians)));
-		Mat m = Imgproc.getRotationMatrix2D(new Point((int) (tempMat.cols() * 0.5), (int) (tempMat.rows() * 0.5)), angle, 1);
+		Mat m = Imgproc.getRotationMatrix2D(new Point((int) (tempMat.cols() * 0.5), (int) (tempMat.rows() * 0.5)), -angle, 1);
 		Imgproc.warpAffine(tempMat, tempMat2, m, tempMat.size());
 		new Mat(tempMat2, new Rect((diagonal - width) / 2, (diagonal - height) / 2, width, height)).copyTo(outputMat);
 		return outputMat;
