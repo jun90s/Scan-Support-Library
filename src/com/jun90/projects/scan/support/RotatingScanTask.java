@@ -16,7 +16,9 @@
  */
 package com.jun90.projects.scan.support;
 
+import org.opencv.core.CvType;
 import org.opencv.core.Mat;
+import org.opencv.core.MatOfPoint2f;
 import org.opencv.core.Point;
 import org.opencv.imgproc.Imgproc;
 
@@ -25,7 +27,6 @@ import com.google.gson.JsonParser;
 
 public class RotatingScanTask implements ScanTask {
 
-	private final double x, y;
 	private final int angle;
 	
 	/** 
@@ -35,10 +36,7 @@ public class RotatingScanTask implements ScanTask {
 	 * @param angle Angle
 	 * @throws IllegalArgumentException
 	 */
-	public RotatingScanTask(double x, double y, int angle) throws IllegalArgumentException {
-		if(x < 0 || x > 1 || y < 0 || y > 1) throw new IllegalArgumentException();
-		this.x = x;
-		this.y = y;
+	public RotatingScanTask(int angle) throws IllegalArgumentException {
 		this.angle = angle;
 	}
 	
@@ -46,17 +44,7 @@ public class RotatingScanTask implements ScanTask {
 		JsonObject json = new JsonParser().parse(s).getAsJsonObject();
 		if(!json.get("type").getAsString().equals(getClass().getSimpleName()))
 			throw new IllegalArgumentException();
-		x = json.get("x").getAsDouble();
-		y = json.get("y").getAsDouble();
 		angle = json.get("angle").getAsInt();
-	}
-	
-	public double getX() {
-		return x;
-	}
-
-	public double getY() {
-		return y;
 	}
 
 	public int getAngle() {
@@ -66,10 +54,18 @@ public class RotatingScanTask implements ScanTask {
 	@Override
 	public Mat run(Mat mat) {
 		if(angle % 360 == 0) return mat;
-		Mat outputMat = new Mat();
-		Mat m = Imgproc.getRotationMatrix2D(new Point(Math.round(mat.cols() * x), 
-				Math.round(mat.rows() * y)), angle, 1);
-		Imgproc.warpAffine(mat, outputMat, m, mat.size());
+		double radians = Math.toRadians(angle);
+		Mat m, outputMat = new Mat();
+		Mat tempMat = new Mat((int) Math.round(Math.abs(mat.cols() * Math.sin(radians)) + Math.abs(mat.rows() * Math.cos(radians))), 
+				(int) Math.round(Math.abs(mat.cols() * Math.cos(radians)) + Math.abs(mat.rows() * Math.sin(radians))), CvType.CV_8UC3);
+		int offsetX = (tempMat.cols() - mat.cols()) / 2;
+		int offsetY = (tempMat.rows() - mat.rows()) / 2;
+		MatOfPoint2f src = new MatOfPoint2f(new Point(0, 0), new Point(mat.cols() - 1, 0), new Point(mat.cols() - 1, mat.rows() - 1));
+		MatOfPoint2f dst = new MatOfPoint2f(new Point(offsetX, offsetY), new Point(offsetX + mat.cols() - 1, offsetY), new Point(offsetX + mat.cols() - 1, offsetY + mat.rows() - 1));
+		m = Imgproc.getAffineTransform(src, dst);
+		Imgproc.warpAffine(mat, tempMat, m, tempMat.size());
+		m = Imgproc.getRotationMatrix2D(new Point(Math.round(tempMat.cols() * 0.5), Math.round(tempMat.rows() * 0.5)), angle, 1);
+		Imgproc.warpAffine(tempMat, outputMat, m, tempMat.size());
 		return outputMat;
 	}
 
@@ -77,8 +73,6 @@ public class RotatingScanTask implements ScanTask {
 	public String toJSON() {
 		JsonObject json = new JsonObject();
 		json.addProperty("type", getClass().getSimpleName());
-		json.addProperty("x", x);
-		json.addProperty("y", y);
 		json.addProperty("angle", angle);
 		return json.toString();
 	}
@@ -87,7 +81,7 @@ public class RotatingScanTask implements ScanTask {
 	public boolean equals(Object object) {
 		if(object instanceof RotatingScanTask) {
 			RotatingScanTask target = (RotatingScanTask) object;
-			if(target.x == x && target.y == y && target.angle == target.angle)
+			if(target.angle == target.angle)
 				return true;
 		}
 		return false;
