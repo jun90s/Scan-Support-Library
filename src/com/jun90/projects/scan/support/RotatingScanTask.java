@@ -18,8 +18,8 @@ package com.jun90.projects.scan.support;
 
 import org.opencv.core.CvType;
 import org.opencv.core.Mat;
-import org.opencv.core.MatOfPoint2f;
 import org.opencv.core.Point;
+import org.opencv.core.Rect;
 import org.opencv.imgproc.Imgproc;
 
 import com.google.gson.JsonObject;
@@ -55,17 +55,16 @@ public class RotatingScanTask implements ScanTask {
 	public Mat run(Mat mat) {
 		if(angle % 360 == 0) return mat;
 		double radians = Math.toRadians(angle);
-		Mat m, outputMat = new Mat();
-		Mat tempMat = new Mat((int) Math.round(Math.abs(mat.cols() * Math.sin(radians)) + Math.abs(mat.rows() * Math.cos(radians))), 
-				(int) Math.round(Math.abs(mat.cols() * Math.cos(radians)) + Math.abs(mat.rows() * Math.sin(radians))), CvType.CV_8UC3);
-		int offsetX = (tempMat.cols() - mat.cols()) / 2;
-		int offsetY = (tempMat.rows() - mat.rows()) / 2;
-		MatOfPoint2f src = new MatOfPoint2f(new Point(0, 0), new Point(mat.cols() - 1, 0), new Point(mat.cols() - 1, mat.rows() - 1));
-		MatOfPoint2f dst = new MatOfPoint2f(new Point(offsetX, offsetY), new Point(offsetX + mat.cols() - 1, offsetY), new Point(offsetX + mat.cols() - 1, offsetY + mat.rows() - 1));
-		m = Imgproc.getAffineTransform(src, dst);
-		Imgproc.warpAffine(mat, tempMat, m, tempMat.size());
-		m = Imgproc.getRotationMatrix2D(new Point(Math.round(tempMat.cols() * 0.5), Math.round(tempMat.rows() * 0.5)), angle, 1);
-		Imgproc.warpAffine(tempMat, outputMat, m, tempMat.size());
+		int diagonal = (int) (Math.sqrt(mat.cols() * mat.cols() + mat.rows() * mat.rows()));
+		Mat tempMat = new Mat(diagonal, diagonal, CvType.CV_8UC3), tempMat2 = new Mat(), outputMat = new Mat();
+		int offsetX = (diagonal - mat.cols()) / 2;
+		int offsetY = (diagonal - mat.rows()) / 2;
+		mat.copyTo(tempMat.submat(offsetY, offsetY + mat.rows(), offsetX, offsetX + mat.cols()));
+		int width = (int) (Math.abs(mat.cols() * Math.cos(radians)) + Math.abs(mat.rows() * Math.sin(radians)));
+		int height = (int) (Math.abs(mat.cols() * Math.sin(radians)) + Math.abs(mat.rows() * Math.cos(radians)));
+		Mat m = Imgproc.getRotationMatrix2D(new Point((int) (tempMat.cols() * 0.5), (int) (tempMat.rows() * 0.5)), angle, 1);
+		Imgproc.warpAffine(tempMat, tempMat2, m, tempMat.size());
+		new Mat(tempMat2, new Rect((diagonal - width) / 2, (diagonal - height) / 2, width, height)).copyTo(outputMat);
 		return outputMat;
 	}
 
